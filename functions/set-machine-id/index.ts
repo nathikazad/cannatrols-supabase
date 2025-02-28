@@ -8,10 +8,10 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 
-console.log("Hello from Functions!")
-
+// set machine id
 serve(async (req) => {
   try {
+    
     // Get request body
     const { machineId, newValue } = await req.json()
     
@@ -34,6 +34,32 @@ serve(async (req) => {
         }
       }
     )
+
+    const authHeader = req.headers.get('Authorization')
+    let userId = null
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '')
+      try {
+        // Verify and decode the JWT to get the user ID
+        const { data, error } = await supabaseClient.auth.getUser(token)
+        if (data?.user) {
+          userId = data.user.id
+        }
+      } catch (e) {
+        console.error('Error decoding JWT:', e)
+        return new Response(
+          JSON.stringify({ error: 'JWT parse error' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    if(userId == null) {
+      return new Response(
+        JSON.stringify({ error: 'No User JWT provided' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
     
     // Update the machine record
     const { data, error } = await supabaseClient
@@ -62,14 +88,3 @@ serve(async (req) => {
   }
 })
 
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/set-machine-id' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
-
-*/
