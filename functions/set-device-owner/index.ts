@@ -13,12 +13,12 @@ serve(async (req) => {
   try {
     
     // Get request body
-    const { machineId, newValue } = await req.json()
+    const { deviceId, name } = await req.json()
     
     // Validate inputs
-    if (!machineId || !newValue) {
+    if (!deviceId || !name) {
       return new Response(
-        JSON.stringify({ error: 'Machine ID and new value are required' }),
+        JSON.stringify({ error: 'Device ID  and Name are required' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
@@ -61,11 +61,20 @@ serve(async (req) => {
       )
     }
     
-    // Update the machine record
+    // Update the machine record or create it if it doesn't exist
     const { data, error } = await supabaseClient
       .from('machines')
-      .update({ machine_id: newValue })
-      .eq('machine_id', machineId)
+      .upsert(
+        { 
+          machine_id: deviceId,
+          user_id: userId,
+          name: name
+        },
+        { 
+          onConflict: 'machine_id',
+          ignoreDuplicates: false
+        }
+      )
       .select()
       .single()
     

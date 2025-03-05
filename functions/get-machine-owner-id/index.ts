@@ -16,7 +16,7 @@ serve(async (req) => {
     }
     
     // Get the machine_id from the request
-    const { machineId, newValue } = await req.json()
+    const { machineId } = await req.json()
     
     if (!machineId) {
       return new Response(
@@ -40,7 +40,7 @@ serve(async (req) => {
     // First, get the machine record to fetch the user_id
     const { data: machineData, error: machineError } = await supabaseClient
       .from('machines')
-      .select('user_id')
+      .select('user_id, name')
       .eq('machine_id', machineId)
       .single()
     
@@ -58,29 +58,12 @@ serve(async (req) => {
       )
     }
     
-    // If newValue is provided, update the machine
-    if (newValue) {
-      const { data: updateData, error: updateError } = await supabaseClient
-        .from('machines')
-        .update({ parameter_value: newValue })
-        .eq('machine_id', machineId)
-        .select()
-        .single()
-      
-      if (updateError) {
-        return new Response(
-          JSON.stringify({ error: updateError.message }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        )
-      }
-    }
-    
     // Return the user_id
     return new Response(
       JSON.stringify({ 
         success: true, 
         user_id: machineData.user_id,
-        updated: newValue ? true : false
+        device_name: machineData.name
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
