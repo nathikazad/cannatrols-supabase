@@ -10,6 +10,7 @@ interface HiveMQCredentials {
 }
 
 serve(async (req) => {
+  console.log('get-mqtt')
   try {
     
     // Create a Supabase client with the service role key, just like set-machine-id
@@ -23,7 +24,7 @@ serve(async (req) => {
         }
       }
     )
-
+    console.log('Checking auth')
     const authHeader = req.headers.get('Authorization')
     let userId = null
 
@@ -32,17 +33,25 @@ serve(async (req) => {
       try {
         // Verify and decode the JWT to get the user ID
         const { data, error } = await supabaseClient.auth.getUser(token)
+        console.log('Data:', data)
         if (data?.user) {
           userId = data.user.id
         }
+        console.log('User ID:', userId)
       } catch (e) {
-        console.error('Error decoding JWT:', e)
+        console.log('Error decoding JWT:', e)
         return new Response(
           JSON.stringify({ error: 'JWT parse error' }),
           { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
       }
-    }
+    } else {
+      console.log('No auth header')
+      return new Response(
+        JSON.stringify({ error: 'No User JWT provided' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
+    } 
 
     if(userId == null) {
       return new Response(
@@ -56,9 +65,9 @@ serve(async (req) => {
 
     // Simply check if any machines exist instead of checking for a specific user
     const { data: machines, error: machinesError } = await supabaseClient
-      .eq('user_id', userId) 
       .from('machines')
       .select('id')
+      .eq('user_id', userId) 
       .limit(1)
 
     // Handle database query error
