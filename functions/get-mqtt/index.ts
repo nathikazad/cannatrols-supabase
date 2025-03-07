@@ -24,7 +24,7 @@ serve(async (req) => {
         }
       }
     )
-    console.log('Checking auth')
+
     const authHeader = req.headers.get('Authorization')
     let userId = null
 
@@ -33,11 +33,9 @@ serve(async (req) => {
       try {
         // Verify and decode the JWT to get the user ID
         const { data, error } = await supabaseClient.auth.getUser(token)
-        console.log('Data:', data)
         if (data?.user) {
           userId = data.user.id
         }
-        console.log('User ID:', userId)
       } catch (e) {
         console.log('Error decoding JWT:', e)
         return new Response(
